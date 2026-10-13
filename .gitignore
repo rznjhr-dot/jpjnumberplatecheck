@@ -12,3 +12,6 @@ captured_traffic/
 .venv/
 *.log
 .kilo/
+
+# Personal macOS double-click launcher (not part of public release)
+JPJ Checker.command
