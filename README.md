@@ -1,22 +1,24 @@
 # JPJ Number Checker
 
-Check vehicle registration number availability across all Malaysian states
-on JPJ mySIKAP — batch mode, one login, hacker terminal UI.
+Check vehicle registration number availability on JPJ mySIKAP — batch
+mode, one login, terminal UI.
 
-Enter 2-3 numbers, log in once (manual CAPTCHA), and the tool scans all
-30 states and districts automatically. Results displayed as plate cards
-with copy-ready summaries.
+Enter 2-3 numbers, pick your regions, log in once (manual CAPTCHA), and
+the tool scans every state/district in the selected regions
+automatically. Results are displayed as plate cards with copy-ready
+summaries.
 
 ## Features
 
 - **Batch mode** — check multiple numbers in a single login session
-- **30 states & districts** — all peninsular states, Sabah, Sarawak, KL
+- **Region filter** — search Peninsular, Sarawak, Sabah, or all regions
+  (default: Sarawak + Sabah). Covers 30 states & districts
   (Putrajaya and Labuan excluded — plates not transferable)
 - **Prefix cache** — states sharing the same number series (e.g. Sibu &
   Mukah share QS) are only searched once, saving time
-- **Hacker terminal UI** — phosphor green on black, matrix rain
+- **Hermès terminal UI** — warm orange/cream on near-black, matrix rain
   background, live verbose log with auto-scroll, typing effect
-- **Color-coded results** — yellow (searching), green (found), gray
+- **Color-coded results** — gold (searching), orange (found), muted
   (not available), red (errors)
 - **Copy summaries** — formatted plate availability summary for each
   number, ready to paste to customers
@@ -69,13 +71,14 @@ Then open `http://localhost:8501` in your browser.
 
 1. Enter numbers in the text area (one per line, or comma-separated)
    - Example: `888`, `777`, `1234`
-2. Click **EXECUTE SCAN**
-3. A browser window opens — log in to JPJ mySIKAP with your password
+2. Tick the regions to search — **Peninsular**, **Sarawak**, **Sabah**,
+   or **ALL SEARCH** (default: Sarawak + Sabah)
+3. Click **EXECUTE SCAN**
+4. A browser window opens — log in to JPJ mySIKAP with your password
    and CAPTCHA (this happens once per session)
-4. The browser minimizes — scanning runs in the background
-5. Watch the terminal log for live progress
-6. When done, results appear as plate cards with availability status
-   and price
+5. The browser minimizes — scanning runs in the background
+6. Watch the terminal log for live progress
+7. When done, results appear as plate cards with availability status
 
 ### macOS .app bundle (optional)
 
@@ -94,17 +97,16 @@ This creates `JPJ Checker.app` in the project directory.
    automate CAPTCHA.
 
 2. **Batch scanning**: After login, the browser session stays open.
-   Each number is checked across all 30 states. The tool selects each
-   state, picks the available prefix (awalan), enters the number, and
-   reads the result.
+   Each number is checked across every state/district in the selected
+   regions. The tool selects each state, picks the available prefix
+   (awalan), enters the number, and reads the result.
 
 3. **Prefix caching**: When multiple states share the same number
    series prefix, only the first state searches it. Subsequent states
    reuse the cached result (shown as "cached" in the terminal log).
 
 4. **Results**: Available plates are shown as cards with the full plate
-   number, state, and price. A text summary is generated for
-   copy-pasting.
+   number and state. A text summary is generated for copy-pasting.
 
 ## Troubleshooting
 

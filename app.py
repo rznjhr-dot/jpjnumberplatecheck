@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-JPJ Number Checker — Hacker Terminal Edition.
+JPJ Number Checker — Hermès Terminal Edition.
 
 Batch mode: login once (CAPTCHA sekali), check multiple numbers dalam
-satu sesi. Terminal aesthetic dengan matrix rain background.
+satu sesi. Warm Hermès-inspired terminal aesthetic dengan matrix rain background.
 
 Usage: streamlit run app.py
 """
@@ -20,7 +20,13 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 sys.path.insert(0, str(Path(__file__).parent))
-from jpj_automation import JpjSession, PRODUCTION_STATES, LoginFailed
+from jpj_automation import (
+    JpjSession,
+    PRODUCTION_STATES,
+    REGIONS,
+    LoginFailed,
+    region_state_codes,
+)
 
 # ── Browser speed patch ──────────────────────────────────────────────
 _speed = min(max(float(os.environ.get("JPJ_SPEED", "0.5")), 0.1), 1.0)
@@ -43,8 +49,8 @@ st.set_page_config(
 )
 
 # ═══════════════════════════════════════════════════════════════════
-# CSS — HACKER TERMINAL THEME
-#   Pure black canvas · phosphor green text · monospace everything
+# CSS — HERMÈS TERMINAL THEME
+#   Warm near-black canvas · orange/cream/gold text · monospace
 #   Terminal window chrome · scanline overlay · blinking cursor
 #   Matrix rain canvas behind content (injected via components.html)
 # ═══════════════════════════════════════════════════════════════════
@@ -59,20 +65,20 @@ st.markdown("""
 }
 [data-testid="stForm"] {border: none !important; padding: 0 !important;}
 
-/* ── Base — black root, transparent children, green text everywhere ── */
+/* ── Base — warm black root, transparent children, orange text ── */
 html, body, .stApp {
-    background: #000 !important;
-    color: #00ff41 !important;
+    background: #0a0705 !important;
+    color: #f37021 !important;
     font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace !important;
 }
-/* All Streamlit text elements: force green + monospace */
+/* All Streamlit text elements: force orange + monospace */
 .stApp p, .stApp label,
 .stApp h1, .stApp h2, .stApp h3, .stApp h4,
 [class*="css"],
 [data-testid="stMarkdownContainer"],
 [data-testid="stMarkdownContainer"] p,
 [data-testid="stMarkdownContainer"] span {
-    color: #00ff41 !important;
+    color: #f37021 !important;
     font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace !important;
 }
 /* Keep containers transparent so matrix rain shows through faintly */
@@ -89,78 +95,78 @@ section[data-testid="stVerticalBlock"] > div,
 
 /* ── Header ── */
 .term-header {
-    border: 1px solid rgba(0,255,65,0.35);
+    border: 1px solid rgba(243,112,33,0.35);
     border-radius: 0;
     padding: 12px 20px;
     margin-bottom: 24px;
-    background: rgba(0,255,65,0.03);
+    background: rgba(243,112,33,0.03);
     display: flex; align-items: center; justify-content: space-between;
 }
 .term-header .title {
     font-size: 14px; font-weight: 700; letter-spacing: 0.18em;
-    color: #00ff41; text-transform: uppercase;
+    color: #f37021; text-transform: uppercase;
 }
 .term-header .sub {
-    font-size: 11px; color: #006400; letter-spacing: 0.12em;
+    font-size: 11px; color: #8a5730; letter-spacing: 0.12em;
     text-transform: uppercase; margin-top: 2px;
 }
 .term-header .ver {
-    font-size: 10px; color: #008f11; letter-spacing: 0.1em;
+    font-size: 10px; color: #c07a3e; letter-spacing: 0.1em;
 }
 
 /* ── Session status badge ── */
 .session-badge {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 3px 10px; border-radius: 0;
-    border: 1px solid rgba(0,255,65,0.2);
+    border: 1px solid rgba(243,112,33,0.2);
     font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-    background: rgba(0,255,65,0.03);
+    background: rgba(243,112,33,0.03);
 }
 .session-badge .dot {
     width: 7px; height: 7px; border-radius: 50%; flex: none;
 }
-.session-badge.active .dot {background: #39ff14; box-shadow: 0 0 6px #39ff14;}
-.session-badge.active {color: #39ff14; border-color: rgba(57,255,20,0.4);}
-.session-badge.dead .dot {background: #ff0040;}
-.session-badge.dead {color: #ff0040; border-color: rgba(255,0,64,0.3);}
-.session-badge.idle .dot {background: #006400;}
-.session-badge.idle {color: #006400;}
+.session-badge.active .dot {background: #e8b96a; box-shadow: 0 0 6px #e8b96a;}
+.session-badge.active {color: #e8b96a; border-color: rgba(232,185,106,0.4);}
+.session-badge.dead .dot {background: #d0453a;}
+.session-badge.dead {color: #d0453a; border-color: rgba(208,69,58,0.3);}
+.session-badge.idle .dot {background: #8a5730;}
+.session-badge.idle {color: #8a5730;}
 
 /* ── Input zone ── */
 .field-label {
     font-size: 10px; font-weight: 700; letter-spacing: 0.2em;
-    color: #008f11; margin-bottom: 8px; text-transform: uppercase;
+    color: #c07a3e; margin-bottom: 8px; text-transform: uppercase;
 }
 [data-testid="stTextArea"] textarea {
-    background: #0a0a0a !important;
-    border: 1px solid rgba(0,255,65,0.25) !important;
+    background: #120d08 !important;
+    border: 1px solid rgba(243,112,33,0.25) !important;
     border-radius: 0 !important;
-    color: #00ff41 !important;
+    color: #f37021 !important;
     font-family: "SF Mono", ui-monospace, monospace !important;
     font-size: 16px !important; line-height: 1.8 !important;
     letter-spacing: 0.04em; padding: 12px 16px !important;
     transition: border-color 120ms ease;
 }
 [data-testid="stTextArea"] textarea:focus {
-    border-color: #00ff41 !important;
-    box-shadow: 0 0 0 1px rgba(0,255,65,0.3) !important;
+    border-color: #f37021 !important;
+    box-shadow: 0 0 0 1px rgba(243,112,33,0.3) !important;
 }
 [data-testid="stTextArea"] textarea::placeholder {
-    color: #004d00; font-style: italic;
+    color: #5c3a20; font-style: italic;
 }
 .field-hint {
-    font-size: 11px; line-height: 1.6; color: #006400;
+    font-size: 11px; line-height: 1.6; color: #8a5730;
     margin-top: 8px; letter-spacing: 0.02em;
 }
-.field-hint b {color: #00ff41; font-weight: 400;}
+.field-hint b {color: #f37021; font-weight: 400;}
 
 /* ── Buttons ── */
 [data-testid="stFormSubmitButton"] button,
 .stButton > button[kind="primary"],
 .stButton > button[kind="primaryFormSubmit"] {
     background: transparent !important;
-    color: #00ff41 !important;
-    border: 1px solid #00ff41 !important;
+    color: #f37021 !important;
+    border: 1px solid #f37021 !important;
     border-radius: 0 !important;
     font-family: "SF Mono", monospace !important;
     font-size: 14px !important; font-weight: 700 !important;
@@ -171,60 +177,60 @@ section[data-testid="stVerticalBlock"] > div,
 [data-testid="stFormSubmitButton"] button:hover,
 .stButton > button[kind="primary"]:hover,
 .stButton > button[kind="primaryFormSubmit"]:hover {
-    background: rgba(0,255,65,0.1) !important;
-    box-shadow: 0 0 12px rgba(0,255,65,0.2) !important;
+    background: rgba(243,112,33,0.1) !important;
+    box-shadow: 0 0 12px rgba(243,112,33,0.2) !important;
 }
 [data-testid="stFormSubmitButton"] button:active,
 .stButton > button[kind="primary"]:active,
 .stButton > button[kind="primaryFormSubmit"]:active {
-    background: rgba(0,255,65,0.2) !important;
+    background: rgba(243,112,33,0.2) !important;
 }
 [data-testid="stFormSubmitButton"] button:disabled,
 .stButton > button[kind="primary"]:disabled,
 .stButton > button[kind="primaryFormSubmit"]:disabled {
-    border-color: #004d00 !important; color: #004d00 !important;
+    border-color: #5c3a20 !important; color: #5c3a20 !important;
 }
 .stButton > button[kind="secondary"] {
     background: transparent !important;
-    border: 1px solid rgba(255,0,64,0.4) !important;
-    color: #ff0040 !important; border-radius: 0 !important;
+    border: 1px solid rgba(208,69,58,0.4) !important;
+    color: #d0453a !important; border-radius: 0 !important;
     font-family: "SF Mono", monospace !important;
     font-size: 12px !important; font-weight: 400 !important;
     letter-spacing: 0.1em; height: 36px;
     text-transform: uppercase;
 }
 .stButton > button[kind="secondary"]:hover {
-    background: rgba(255,0,64,0.08) !important;
-    border-color: #ff0040 !important;
+    background: rgba(208,69,58,0.08) !important;
+    border-color: #d0453a !important;
 }
 .stButton > button[kind="secondary"]:disabled {opacity: 0.3;}
 
 /* ── Checkbox ── */
 [data-testid="stCheckbox"] label[data-baseweb="checkbox"] > div {
-    border-color: rgba(0,255,65,0.3) !important;
+    border-color: rgba(243,112,33,0.3) !important;
     background: transparent !important;
 }
 [data-testid="stCheckbox"] label[data-baseweb="checkbox"]:has(input:checked) > div {
-    background: #00ff41 !important; border-color: #00ff41 !important;
+    background: #f37021 !important; border-color: #f37021 !important;
 }
 [data-testid="stCheckbox"] label[data-baseweb="checkbox"]:has(input:checked) > div > div {
-    background: #000 !important; border-color: #000 !important;
+    background: #0a0705 !important; border-color: #0a0705 !important;
 }
-[data-testid="stCheckbox"] label {color: #008f11 !important; font-size: 12px;}
+[data-testid="stCheckbox"] label {color: #c07a3e !important; font-size: 12px;}
 
 /* ── Terminal window ── */
 .term-window {
-    border: 1px solid rgba(0,255,65,0.3);
+    border: 1px solid rgba(243,112,33,0.3);
     border-radius: 0;
-    background: #050505;
+    background: #0d0906;
     margin-bottom: 24px;
     overflow: hidden;
 }
 .term-titlebar {
     display: flex; align-items: center; gap: 8px;
     padding: 8px 12px;
-    background: rgba(0,255,65,0.06);
-    border-bottom: 1px solid rgba(0,255,65,0.15);
+    background: rgba(243,112,33,0.06);
+    border-bottom: 1px solid rgba(243,112,33,0.15);
 }
 .term-dots {display: flex; gap: 6px;}
 .term-dots span {
@@ -234,19 +240,19 @@ section[data-testid="stVerticalBlock"] > div,
 .term-dots .y {background: #ffbd2e;}
 .term-dots .g {background: #27c93f;}
 .term-titlebar .t {
-    font-size: 11px; color: #008f11; letter-spacing: 0.1em;
+    font-size: 11px; color: #c07a3e; letter-spacing: 0.1em;
     flex: 1; text-align: center;
 }
 .term-titlebar .live {
-    font-size: 10px; color: #39ff14; letter-spacing: 0.1em;
+    font-size: 10px; color: #e8b96a; letter-spacing: 0.1em;
     display: flex; align-items: center; gap: 4px;
 }
 .term-titlebar .live .pulse {
-    width: 6px; height: 6px; border-radius: 50%; background: #39ff14;
+    width: 6px; height: 6px; border-radius: 50%; background: #e8b96a;
     animation: pulse 1.2s ease-in-out infinite;
 }
-.term-titlebar .live.done .pulse {background: #006400; animation: none;}
-.term-titlebar .live.err .pulse {background: #ff0040; animation: none;}
+.term-titlebar .live.done .pulse {background: #8a5730; animation: none;}
+.term-titlebar .live.err .pulse {background: #d0453a; animation: none;}
 @keyframes pulse {0%,100% {opacity: 1;} 50% {opacity: 0.2;}}
 
 /* ── Terminal body (scrollable log area) ── */
@@ -256,34 +262,34 @@ section[data-testid="stVerticalBlock"] > div,
     max-height: 460px; overflow-y: auto;
 }
 .term-body::-webkit-scrollbar {width: 6px;}
-.term-body::-webkit-scrollbar-thumb {background: rgba(0,255,65,0.15);}
+.term-body::-webkit-scrollbar-thumb {background: rgba(243,112,33,0.15);}
 
 /* ── Progress line (pinned above scroll area, always visible) ── */
 .term-progress {
-    background: #050505;
+    background: #0d0906;
     padding: 12px 16px;
-    border-bottom: 1px solid rgba(0,255,65,0.15);
+    border-bottom: 1px solid rgba(243,112,33,0.15);
 }
 .term-progress .target {
-    font-size: 13px; font-weight: 700; color: #00d4ff;
+    font-size: 13px; font-weight: 700; color: #ffcf8a;
     letter-spacing: 0.06em; margin-bottom: 6px;
 }
 .term-progress .bar {
     font-family: "SF Mono", monospace; font-size: 12px;
-    color: #00ff41; letter-spacing: 0; line-height: 1.4;
+    color: #f37021; letter-spacing: 0; line-height: 1.4;
 }
-.term-progress .bar .fill {color: #00ff41;}
-.term-progress .bar .empty {color: #004d00;}
-.term-progress .bar .num {color: #008f11; margin-left: 8px;}
-.term-progress .bar .pct {color: #006400; margin-left: 8px;}
+.term-progress .bar .fill {color: #f37021;}
+.term-progress .bar .empty {color: #5c3a20;}
+.term-progress .bar .num {color: #c07a3e; margin-left: 8px;}
+.term-progress .bar .pct {color: #8a5730; margin-left: 8px;}
 
 /* ── Matrix typing effect (pinned at bottom, always visible) ── */
 .term-typing {
     padding: 8px 16px;
-    border-top: 1px solid rgba(0,255,65,0.15);
-    background: #030303;
+    border-top: 1px solid rgba(243,112,33,0.15);
+    background: #080604;
     font-family: "SF Mono", monospace;
-    font-size: 12px; color: #00ff41;
+    font-size: 12px; color: #f37021;
     letter-spacing: 0.06em; opacity: 0.6;
     white-space: pre; overflow: hidden;
     min-height: 20px;
@@ -292,19 +298,19 @@ section[data-testid="stVerticalBlock"] > div,
 /* ── Log lines ── */
 .term-log {font-size: 12px; line-height: 1.7; font-family: "SF Mono", monospace;}
 .term-log .line {white-space: pre-wrap; word-break: break-word; min-height: 1.7em;}
-.term-log .ts {color: #004d00;}
-.term-log .arrow {color: #008f11;}
-.term-log .msg-sys {color: #008f11;}
-.term-log .msg-scan {color: #ffee00;}
-.term-log .msg-ok {color: #39ff14;}
-.term-log .msg-nope {color: #6b6b6b;}
-.term-log .msg-err {color: #ff0040;}
-.term-log .msg-num {color: #00d4ff; font-weight: 700;}
+.term-log .ts {color: #5c3a20;}
+.term-log .arrow {color: #c07a3e;}
+.term-log .msg-sys {color: #c07a3e;}
+.term-log .msg-scan {color: #ffd166;}
+.term-log .msg-ok {color: #e8b96a;}
+.term-log .msg-nope {color: #8a7a6a;}
+.term-log .msg-err {color: #d0453a;}
+.term-log .msg-num {color: #ffcf8a; font-weight: 700;}
 
 /* ── Blinking cursor ── */
 .term-cursor {
     display: inline-block; width: 8px; height: 14px;
-    background: #00ff41; vertical-align: text-bottom;
+    background: #f37021; vertical-align: text-bottom;
     animation: blink 1s step-end infinite;
     margin-left: 2px;
 }
@@ -316,25 +322,25 @@ section[data-testid="stVerticalBlock"] > div,
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     background: repeating-linear-gradient(
         0deg, transparent, transparent 2px,
-        rgba(0,255,65,0.02) 2px, rgba(0,255,65,0.02) 3px);
+        rgba(243,112,33,0.02) 2px, rgba(243,112,33,0.02) 3px);
     pointer-events: none; z-index: 1;
 }
 
 /* ── Progress bar (st.progress) ── */
 [data-testid="stProgress"] > div {height: 2px !important; border-radius: 0;}
-[data-testid="stProgress"] > div > div {background: #00ff41 !important;}
+[data-testid="stProgress"] > div > div {background: #f37021 !important;}
 
 /* ── Results ── */
 .result-section {
-    border-top: 1px solid rgba(0,255,65,0.15);
+    border-top: 1px solid rgba(243,112,33,0.15);
     padding-top: 20px; margin-top: 32px;
 }
 .result-num {
-    font-size: 12px; font-weight: 700; color: #00d4ff;
+    font-size: 12px; font-weight: 700; color: #ffcf8a;
     letter-spacing: 0.1em; margin-bottom: 4px;
 }
 .result-count {
-    font-size: 11px; color: #008f11; margin-bottom: 16px;
+    font-size: 11px; color: #c07a3e; margin-bottom: 16px;
     letter-spacing: 0.04em;
 }
 .result-grid {
@@ -343,58 +349,49 @@ section[data-testid="stVerticalBlock"] > div,
 }
 .plate-card {padding: 0;}
 .plate {
-    background: #f7f9fa; border: 1px solid rgba(0,255,65,0.15);
+    background: #f3ece1; border: 1px solid rgba(243,112,33,0.15);
     border-radius: 4px; padding: 12px 10px; text-align: center;
     margin-bottom: 8px;
     font-family: "SF Mono", monospace;
     font-size: 20px; font-weight: 700; letter-spacing: 0.08em;
-    color: #090909 !important; font-variant-numeric: tabular-nums;
-    box-shadow: inset 0 -2px 0 rgba(9,9,9,0.2);
+    color: #2b1b10 !important; font-variant-numeric: tabular-nums;
+    box-shadow: inset 0 -2px 0 rgba(43,27,16,0.2);
 }
 .plate-state {
-    font-size: 9px; font-weight: 400; letter-spacing: 0.16em;
-    text-transform: uppercase; color: #006400;
+    font-size: 10px; font-weight: 400; letter-spacing: 0.16em;
+    text-transform: uppercase; color: #c07a3e;
     font-family: "SF Mono", monospace; text-align: center;
 }
-.plate-meta {
-    display: flex; justify-content: space-between; align-items: baseline;
-    margin-top: 4px; font-size: 11px; color: #004d00;
-}
-.plate-price {
-    font-family: "SF Mono", monospace;
-    font-size: 13px; font-weight: 400; color: #00ff41;
-    font-variant-numeric: tabular-nums;
-}
 .result-empty {
-    font-size: 12px; color: #006400; line-height: 1.6;
+    font-size: 12px; color: #8a5730; line-height: 1.6;
     padding: 16px 0;
 }
 
 /* ── Copy block ── */
 .copy-title {
     font-size: 10px; font-weight: 700; letter-spacing: 0.2em;
-    text-transform: uppercase; color: #008f11;
+    text-transform: uppercase; color: #c07a3e;
     font-family: "SF Mono", monospace; margin-top: 12px;
 }
-.copy-sub {font-size: 11px; color: #004d00; margin-bottom: 8px;}
+.copy-sub {font-size: 11px; color: #5c3a20; margin-bottom: 8px;}
 [data-testid="stTextArea"] textarea[aria-label="summary"] {
-    font-size: 11px !important; color: #008f11 !important;
-    border-color: rgba(0,255,65,0.12) !important;
+    font-size: 11px !important; color: #c07a3e !important;
+    border-color: rgba(243,112,33,0.12) !important;
 }
 
 /* ── Alerts ── */
 div[data-testid="stAlert"] {
-    background: rgba(0,255,65,0.03) !important;
-    border: 1px solid rgba(0,255,65,0.15) !important;
+    background: rgba(243,112,33,0.03) !important;
+    border: 1px solid rgba(243,112,33,0.15) !important;
     border-radius: 0 !important;
 }
-div[data-testid="stAlert"] p {color: #00ff41 !important; font-size: 12px;}
+div[data-testid="stAlert"] p {color: #f37021 !important; font-size: 12px;}
 
 /* ── Footer ── */
 .term-footer {
     margin-top: 32px; padding-top: 12px;
-    border-top: 1px solid rgba(0,255,65,0.1);
-    font-size: 10px; color: #004d00;
+    border-top: 1px solid rgba(243,112,33,0.1);
+    font-size: 10px; color: #5c3a20;
     letter-spacing: 0.08em; text-transform: uppercase;
     display: flex; justify-content: space-between; align-items: center;
 }
@@ -402,7 +399,7 @@ div[data-testid="stAlert"] p {color: #00ff41 !important; font-size: 12px;}
 /* ── Focus ── */
 button:focus-visible, a:focus-visible, input:focus-visible,
 textarea:focus-visible {
-    outline: 1px solid #00ff41 !important; outline-offset: 1px !important;
+    outline: 1px solid #f37021 !important; outline-offset: 1px !important;
 }
 
 /* ── Reduced motion ── */
@@ -452,7 +449,7 @@ components.html("""
         function draw(){
             ctx.fillStyle = 'rgba(0,0,0,0.05)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#00ff41';
+            ctx.fillStyle = '#f37021';
             ctx.font = fs + 'px monospace';
             for (var i = 0; i < drops.length; i++){
                 var text = chars[Math.floor(Math.random() * chars.length)];
@@ -540,6 +537,10 @@ _DEFAULTS = {
     "_scan_logs": [],
     "_last_numbers": "",
     "_last_visible": False,
+    "_region_all": False,
+    "_region_peninsular": False,
+    "_region_sarawak": True,
+    "_region_sabah": True,
 }
 for k, v in _DEFAULTS.items():
     if k not in st.session_state:
@@ -568,6 +569,39 @@ def parse_numbers(text):
 
 def _now_ts():
     return datetime.now().strftime("%H:%M:%S")
+
+
+def _selected_regions():
+    """Ordered region names currently selected in the UI."""
+    if st.session_state.get("_region_all"):
+        return list(REGIONS)
+    picked = []
+    if st.session_state.get("_region_peninsular"):
+        picked.append("PENINSULAR")
+    if st.session_state.get("_region_sarawak"):
+        picked.append("SARAWAK")
+    if st.session_state.get("_region_sabah"):
+        picked.append("SABAH")
+    return picked
+
+
+def _region_label():
+    if st.session_state.get("_region_all"):
+        return "ALL SEARCH"
+    picked = _selected_regions()
+    return " + ".join(picked) if picked else "NONE"
+
+
+def _target_states(regions):
+    """(state_codes or None, number of state/district targets)."""
+    if not regions:
+        return [], 0
+    codes = region_state_codes(regions)
+    if codes is None:
+        return None, len(PRODUCTION_STATES)
+    wanted = set(codes)
+    n = sum(1 for code, _, _ in PRODUCTION_STATES if code in wanted)
+    return codes, n
 
 
 def _add_log(scan, msg, mtype="sys"):
@@ -612,11 +646,9 @@ def _customer_summary(number, results):
     if avail:
         lines.append(f"NOMBOR TERSEDIA ({len(avail)}):")
         for v in sorted(avail, key=lambda x: x.get("state", "")):
-            harga = v.get("harga", "")
-            harga_txt = f" (RM {harga})" if harga else ""
-            lines.append(f"✅ {v.get('nombor','')} — {v.get('state','')}{harga_txt}")
+            lines.append(f"✅ {v.get('nombor','')} — {v.get('state','')}")
     else:
-        lines.append(f"Nombor {number} TIDAK tersedia di mana-mana negeri.")
+        lines.append(f"Nombor {number} TIDAK tersedia di kawasan yang disemak.")
     nope_real = [v for v in nope if "Dilangkau" not in (v.get("status_text") or "")]
     skipped = [v for v in nope if "Dilangkau" in (v.get("status_text") or "")]
     if nope_real:
@@ -637,7 +669,7 @@ def _copy_button(text, label="COPY", key="copybtn"):
     html = f"""
     <div style="margin-bottom:8px">
       <button id="{key}" style="
-        background:transparent; color:#00ff41; border:1px solid rgba(0,255,65,0.4);
+        background:transparent; color:#f37021; border:1px solid rgba(243,112,33,0.4);
         border-radius:0; height:36px; padding:0 16px; font-size:11px; font-weight:700;
         cursor:pointer; font-family:'SF Mono',monospace; letter-spacing:0.15em;
         text-transform:uppercase; transition:all 120ms ease;
@@ -645,14 +677,14 @@ def _copy_button(text, label="COPY", key="copybtn"):
         (function(btn){{
           navigator.clipboard.writeText('{payload}').then(function(){{
             btn.textContent='COPIED ✓';
-            btn.style.background='rgba(57,255,20,0.1)';
-            btn.style.borderColor='#39ff14';
-            btn.style.color='#39ff14';
+            btn.style.background='rgba(232,185,106,0.1)';
+            btn.style.borderColor='#e8b96a';
+            btn.style.color='#e8b96a';
             setTimeout(function(){{
               btn.textContent='{label}';
               btn.style.background='transparent';
-              btn.style.borderColor='rgba(0,255,65,0.4)';
-              btn.style.color='#00ff41';
+              btn.style.borderColor='rgba(243,112,33,0.4)';
+              btn.style.color='#f37021';
             }}, 1600);
           }});
         }})(this);
@@ -707,7 +739,7 @@ def _terminal_panel():
         done = scan.get("done", False)
         err = scan.get("error")
 
-    total_states = len(PRODUCTION_STATES)
+    total_states = scan.get("total_states") or len(PRODUCTION_STATES)
     done_states = len(events)
     elapsed = time.time() - (scan.get("start_time") or time.time())
     timer = f"{int(elapsed // 60):02d}:{int(elapsed % 60):02d}"
@@ -818,11 +850,13 @@ def _terminal_panel():
 # ═══════════════════════════════════════════════════════════════════
 # HEADER
 # ═══════════════════════════════════════════════════════════════════
+_, _header_targets = _target_states(_selected_regions())
 st.markdown(
     f'<div class="term-header">'
     f'<div><div class="title">JPJ MYSIKAP TERMINAL</div>'
-    f'<div class="sub">batch scan mode · {len(PRODUCTION_STATES)} negeri · login sekali</div></div>'
-    '<div class="ver">v2.0</div>'
+    f'<div class="sub">batch scan mode · {_region_label()} · '
+    f'{_header_targets} kawasan · login sekali</div></div>'
+    '<div class="ver">v2.1</div>'
     '</div>',
     unsafe_allow_html=True,
 )
@@ -833,6 +867,29 @@ if session and session.is_alive() and not st.session_state.get("running"):
     if st.button("✕ CLOSE SESSION"):
         _close_session()
         st.rerun()
+
+# ═══════════════════════════════════════════════════════════════════
+# REGION SELECTION
+# ═══════════════════════════════════════════════════════════════════
+st.markdown('<div class="field-label">▸ KAWASAN CARIAN</div>',
+            unsafe_allow_html=True)
+_rc_all, _rc_pen, _rc_sar, _rc_sab = st.columns(4)
+_rc_all.checkbox("ALL SEARCH", key="_region_all",
+                 disabled=st.session_state.get("running", False))
+_rc_pen.checkbox("PENINSULAR", key="_region_peninsular",
+                 disabled=st.session_state.get("_region_all") or
+                 st.session_state.get("running", False))
+_rc_sar.checkbox("SARAWAK", key="_region_sarawak",
+                 disabled=st.session_state.get("_region_all") or
+                 st.session_state.get("running", False))
+_rc_sab.checkbox("SABAH", key="_region_sabah",
+                 disabled=st.session_state.get("_region_all") or
+                 st.session_state.get("running", False))
+st.markdown(
+    '<div class="field-hint">Default: <b>Sarawak + Sabah</b>. Tandakan '
+    '<b>ALL SEARCH</b> untuk semak semua kawasan.</div>',
+    unsafe_allow_html=True,
+)
 
 # ═══════════════════════════════════════════════════════════════════
 # INPUT — multi-number text area
@@ -868,8 +925,12 @@ st.markdown(
 # ═══════════════════════════════════════════════════════════════════
 if check_btn:
     numbers = parse_numbers(numbers_text)
+    regions = _selected_regions()
+    scan_states, scan_total = _target_states(regions)
     if not numbers:
         st.error("Masukkan sekurang-kurangnya satu nombor yang sah (1-9999).")
+    elif not regions:
+        st.error("Pilih sekurang-kurangnya satu kawasan carian.")
     else:
         st.session_state._last_numbers = numbers_text
         st.session_state.running = True
@@ -877,6 +938,9 @@ if check_btn:
 
         scan = {
             "numbers": numbers,
+            "states": scan_states,
+            "total_states": scan_total,
+            "regions": regions,
             "current_idx": 0,
             "current_number": None,
             "events": [],
@@ -923,6 +987,8 @@ if check_btn:
                     _add_log(scan, "AUTH_SUCCESS — session established", "ok")
                     _add_log(scan, "FORM_READY — kategori: Nombor Pendaftaran Semasa", "ok")
 
+                _add_log(scan, f">>> REGIONS: {' + '.join(scan['regions'])} "
+                            f"({scan['total_states']} kawasan)", "num")
                 _add_log(scan, f">>> BATCH START: {len(numbers)} nombor queued", "num")
 
                 for i, number in enumerate(numbers):
@@ -939,6 +1005,7 @@ if check_btn:
 
                     results = _get_session().check_number(
                         number,
+                        states=scan.get("states"),
                         on_progress=progress_cb,
                         on_status=status_cb,
                         stop_event=stop_ev,
@@ -1001,7 +1068,7 @@ if all_results and not st.session_state.get("running") and not st.session_state.
         st.markdown(
             f'<div class="result-section">'
             f'<div class="result-num">>>> NOMBOR {number}</div>'
-            f'<div class="result-count">{n_avail}/{n_total} negeri tersedia</div>'
+            f'<div class="result-count">{n_avail}/{n_total} kawasan tersedia</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -1017,9 +1084,7 @@ if all_results and not st.session_state.get("running") and not st.session_state.
                     f'<div class="plate-card">'
                     f'<div class="plate">{plate}</div>'
                     f'<div class="plate-state">{v["state"]}</div>'
-                    f'<div class="plate-meta"><span>HARGA</span>'
-                    f'<span class="plate-price">RM {v.get("harga", "310.00")}</span>'
-                    f'</div></div>'
+                    f'</div>'
                 )
             st.markdown(
                 f'<div class="result-grid">{"".join(cards)}</div>',
@@ -1028,7 +1093,7 @@ if all_results and not st.session_state.get("running") and not st.session_state.
         else:
             st.markdown(
                 f'<div class="result-empty">'
-                f'Nombor {number} TIDAK tersedia di mana-mana negeri yang disemak.'
+                f'Nombor {number} TIDAK tersedia di kawasan yang disemak.'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -1104,7 +1169,7 @@ if all_results and not st.session_state.get("running") and not st.session_state.
                 if (doc.getElementById('kill-overlay')) return;
                 var ov = doc.createElement('div');
                 ov.id = 'kill-overlay';
-                ov.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:99999;display:flex;align-items:center;justify-content:center;color:#39ff14;font-family:SF Mono,monospace;font-size:22px;letter-spacing:0.15em;text-transform:uppercase;';
+                ov.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0705;z-index:99999;display:flex;align-items:center;justify-content:center;color:#e8b96a;font-family:SF Mono,monospace;font-size:22px;letter-spacing:0.15em;text-transform:uppercase;';
                 doc.body.appendChild(ov);
                 var left = 3;
                 ov.textContent = '■ SERVER STOPPED — closing in ' + left + 's';
@@ -1136,7 +1201,7 @@ if all_results and not st.session_state.get("running") and not st.session_state.
 st.markdown(
     f'<div class="term-footer">'
     f'<span>+ DATA FROM mySIKAP JPJ · LOGIN ONCE · BATCH MODE</span>'
-    f'<span>v2.0</span>'
+    f'<span>v2.1</span>'
     f'</div>',
     unsafe_allow_html=True,
 )

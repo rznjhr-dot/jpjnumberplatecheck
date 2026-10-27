@@ -73,6 +73,30 @@ PRODUCTION_STATES = [
     ("14", "KUALA LUMPUR", "WILAYAH PERSEKUTUAN KUALA LUMPUR"),
 ]
 
+# Region groupings (JPJ latest number plate page classification).
+REGIONS = {
+    "PENINSULAR": ("01", "02", "03", "04", "05", "06", "07", "08",
+                   "09", "10", "11", "14"),
+    "SARAWAK": ("13",),
+    "SABAH": ("12",),
+}
+
+
+def region_state_codes(regions):
+    """Return state codes for the named regions (None = all states)."""
+    if not regions:
+        return None
+    codes = []
+    for region in regions:
+        for code in REGIONS.get(region, ()):
+            if code not in codes:
+                codes.append(code)
+    if not codes:
+        return None
+    if set(codes) >= {c for c, _, _ in PRODUCTION_STATES}:
+        return None
+    return codes
+
 
 def _ensure_dirs():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

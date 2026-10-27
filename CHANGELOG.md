@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.1 (2026-10-27)
+
+### Added
+- Region selector on the search page: Peninsular, Sarawak, Sabah, or
+  ALL SEARCH. Default selection is Sarawak + Sabah
+- `REGIONS` mapping + `region_state_codes()` helper in jpj_automation
+
+### Changed
+- Results are simpler: plate number + state only (price/RM310 removed
+  from cards and copy summaries)
+- UI recolored to a Hermès-inspired palette (orange, cream, gold on warm
+  near-black)
+- Progress and header counts now reflect the selected regions
+
 ## v2.0 (2026-10-13)
 
 ### Added
