@@ -32,7 +32,8 @@ PROD_BASE = "https://public.jpj.gov.my/public/"
 LOGIN_URL = PROD_BASE
 
 BASE_DIR = Path(__file__).parent
-SESSION_DIR = BASE_DIR / "sessions"  # legacy debug artifacts only
+SESSION_DIR = BASE_DIR / "sessions"  # saved login state + debug artifacts
+SESSION_STATE = SESSION_DIR / "jpj_state.json"
 OUTPUT_DIR = BASE_DIR / "output"
 
 # JPJ Production state mappings — real JPJ combobox text per state.
@@ -100,7 +101,34 @@ def region_state_codes(regions):
 
 def _ensure_dirs():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    SESSION_DIR.mkdir(parents=True, exist_ok=True)  # kept for debug artifacts
+    SESSION_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def saved_session_age_seconds():
+    """Seconds since the saved JPJ login was last written (None if none)."""
+    try:
+        if SESSION_STATE.exists():
+            return max(0.0, time.time() - SESSION_STATE.stat().st_mtime)
+    except Exception:
+        pass
+    return None
+
+
+def saved_session_age_minutes():
+    """Minutes since the saved JPJ login was last written (None if none)."""
+    age = saved_session_age_seconds()
+    return None if age is None else max(0, int(age / 60))
+
+
+def forget_saved_session():
+    """Delete the saved cookies so the next batch requires a fresh login."""
+    try:
+        SESSION_STATE.unlink()
+        return True
+    except FileNotFoundError:
+        return False
+    except Exception:
+        return False
 
 
 def _is_login_page(page) -> bool:
@@ -1250,7 +1278,22 @@ class JpjSession:
             headless=False,
             args=["--disable-blink-features=AutomationControlled"],
         )
-        self.ctx = self.browser.new_context(viewport={"width": 1280, "height": 900})
+        saved_age = saved_session_age_minutes()
+        ctx_kwargs = {"viewport": {"width": 1280, "height": 900}}
+        if saved_age is not None:
+            ctx_kwargs["storage_state"] = str(SESSION_STATE)
+            self._say(f"Sesi login tersimpan {saved_age} min lalu — semak...")
+        try:
+            self.ctx = self.browser.new_context(**ctx_kwargs)
+        except Exception:
+            if saved_age is not None:
+                self._say("Fail sesi tersimpan rosak — login baru diperlukan.")
+                try:
+                    SESSION_STATE.unlink()
+                except Exception:
+                    pass
+            self.ctx = self.browser.new_context(
+                viewport={"width": 1280, "height": 900})
         self.page = self.ctx.new_page()
         self.page.set_default_timeout(30_000)
 
@@ -1259,13 +1302,19 @@ class JpjSession:
             self.page.goto(LOGIN_URL, wait_until="networkidle", timeout=60_000)
 
             if not _is_logged_in(self.page):
+                if saved_age is not None:
+                    self._say(f"Sesi tersimpan tamat selepas {saved_age} min "
+                              "— login diperlukan.")
                 if not _interactive_login(self.page, timeout=timeout,
                                           on_status=self._say):
                     self._say("Gagal login. Henti.")
                     raise LoginFailed(
                         "Login tidak selesai dalam masa yang diberikan")
             else:
-                self._say("Sesi masih aktif — terus scan")
+                if saved_age is not None:
+                    self._say("Sesi tersimpan masih aktif — login dilangkau.")
+                else:
+                    self._say("Sesi masih aktif — terus scan")
 
             try:
                 self.page.wait_for_load_state("networkidle", timeout=20_000)
@@ -1353,6 +1402,8 @@ class JpjSession:
 
             self._say("Borang carian sedia")
             self.logged_in = True
+            if self._save_session_state():
+                self._say("Login disimpan untuk batch seterusnya.")
             return True
         except LoginFailed:
             self._cleanup()
@@ -1490,6 +1541,23 @@ class JpjSession:
             traceback.print_exc()
             return results
 
+    def _save_session_state(self):
+        """Persist cookies so the next batch can skip manual login."""
+        try:
+            if not self.ctx:
+                return False
+            SESSION_DIR.mkdir(parents=True, exist_ok=True)
+            tmp = SESSION_STATE.with_suffix(".tmp")
+            self.ctx.storage_state(path=str(tmp))
+            tmp.replace(SESSION_STATE)
+            try:
+                SESSION_STATE.chmod(0o600)
+            except Exception:
+                pass
+            return True
+        except Exception:
+            return False
+
     def _cleanup(self):
         for closer in (
             lambda: self.page.close() if self.page else None,
@@ -1508,9 +1576,12 @@ class JpjSession:
         self.pw = None
 
     def close(self):
-        """Close the browser and release all resources."""
+        """Save the login, then close the browser and release all resources."""
+        saved = self._save_session_state()
         self._cleanup()
-        self._say("Sesi JPJ ditutup.")
+        self._say("Sesi JPJ ditutup." +
+                  (" Login disimpan untuk batch seterusnya." if saved else ""))
+        return saved
 
 
 # ---------------------------------------------------------------------------
